@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html class="reveal-full-page" lang="en"><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Modeling Linear PDE Systems with Probabilistic Machine Learning</title>
+
+		<link rel="stylesheet" href="assets/reveal.css">
+		<link rel="stylesheet" href="assets/white.css">
+		
+		<link rel="stylesheet" type="text/css" href="http://tikzjax.com/v1/fonts.css">
+		
+		<!-- Theme used for syntax highlighted code -->
+		<link rel="stylesheet" href="assets/monokai.css">
+	<style type="text/css">.hljs-ln{border-collapse:collapse}.hljs-ln td{padding:0}.hljs-ln-n:before{content:attr(data-line-number)}</style><link rel="stylesheet" href="assets/katex.min.css"><script type="text/javascript" src="assets/katex.min.js"></script><script type="text/javascript" src="assets/auto-render.min.js"></script></head>
+	<body class="reveal-viewport" style="--slide-width: 1920px; --slide-height: 1080px; --slide-scale: 1.1368888888888888;">
+		<div class="reveal slide center focused has-horizontal-slides ready" role="application" data-transition-speed="default" data-background-transition="fade" style="">
+			<div class="slides" style="width: 1920px; height: 1080px; inset: 50% auto auto 50%; transform: translate(-50%, -50%) scale(1.13689);">
+						
+				<section style="top: 12.5px; display: block;" class="present">
+					<div class="r-hstack" style="margin-top: -2em; scale: 66%; border: 3px solid black; border-radius: 1em; padding: 1em">
+						<div>
+							<video data-autoplay="" src="assets/E.mp4" loop=""></video>
+						</div>
+						<div style="margin-right: 2em; margin-left: 2em; padding: 1em; scale: 80%">
+							\[
+								\begin{align*}
+									\nabla \cdot \mathbf{E} &amp;= 0 \\
+									\nabla \cdot \mathbf{B} &amp;= 0 \\
+									\nabla \times \mathbf{E} &amp;= -\frac{\partial \mathbf{B}}{\partial t} \\
+									\nabla \times \mathbf{B} &amp;= \frac{\partial \mathbf{E}}{\partial t}
+								\end{align*}
+							\]
+						</div>
+						<div>
+							<video data-autoplay="" src="assets/B.mp4" loop=""></video>
+						</div>
+					</div>
+					<h3>Modeling Linear PDE Systems with Probabilistic Machine Learning</h3>
+					<p style="margin-top: -12px;">
+						Markus Lange-Hegermann<br>
+						<small>
+						Institut für industrielle Informationstechnik - inIT<br>
+						Department of Electrical Engineering and Computer Science, TH OWL
+						</small>
+					</p>
+					<p style="margin-top: -6px;">
+						Bogdan Raiță
+						<br>
+						<small>
+						Department of Mathematics and Statistics<br>
+						Georgetown University
+						</small>
+					</p>
+					<p style="margin-top: -6px;">
+						<small>
+						With many, <i>many</i> contributions by Andreas Besginow, Marc Härkönen, Jianlei Huang, Xin Li, and Daniel Robertz
+						</small>
+					</p>
+				</section>
+				
+				<!--
+				<section style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h3>Table of Contents</h3>
+					<div class="r-hstack">
+						<ul style="margin: 0; line-height: 2em;">
+							<li>Some math (feel free to interupt me by asking questions)</li>
+							<li>A lot of pictures and Videos</li>
+						</ul>
+					</div>
+				</section>
+				-->
+
+				<section style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h3>Differential Equations and Data: Why?</h3>
+					<div class="r-hstack">
+						<ul style="margin: 0; line-height: 2em;">
+							<li>Combine expert knowledge and data.
+							<li>Want intepretable and reliable models.
+							<li>Focus on (irregularly spaced) data rather than IC/BC.
+							<li>Numerical simulations might be computationally too costly.
+						</ul>
+					</div>
+				</section>
+				
+				<section style="top: 27px; display: block;" aria-hidden="true" class="future" hidden="">
+					<h2>Example</h2>
+					<h3>Damped spring-mass system</h3>
+					<div class="r-hstack">
+						<p>
+							\[\frac{\mathrm{d}^2y}{\mathrm{d}t^2} + 2 \frac{\mathrm{d}y}{\mathrm{d}t} + 10y = 0\]
+							Sample 5 noisy points
+						</p>
+						<img style="margin-left: 3em;" src="assets/true_ani.gif" data-lazy-loaded="" height="800px">
+					</div>
+				</section>
+
+				<section style="top: 27px; display: block;" aria-hidden="true" class="future" hidden="">
+					<h2>Example</h2>
+					<h3>Neural Network</h3>
+					<div class="r-hstack">
+						<ul style="list-style: none; margin: 0; line-height: 2em;">
+							<li>⚠️ ~300,000 parameters</li>
+							<li>✅ Fast convergence</li>
+							<li>❌ Bad inter/extrapolation</li>
+						</ul>
+						<img style="margin-left: 3em;" src="assets/NN.gif" data-lazy-loaded="" height="800px">
+					</div>
+				</section>
+
+				<section style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Example</h2>
+					<h3>Physics Informed Neural Network</h3>
+					<div class="r-hstack">
+						<ul style="list-style: none; margin: 0; line-height: 2em;">
+							<li>✅ Good interpolation</li>
+							<li>✅ Fast inference</li>
+							<li>⚠️ ~300,000 parameters</li>
+							<li>⚠️ Requires extra points</li>
+							<li>⚠️ Not an exact solution</li>
+							<li>❌ Slow convergence</li>
+							<li>❌ Hard to optimize</li>
+						</ul>
+						<img style="margin-left: 3em;" data-src="assets/PINN.gif" height="800px">
+					</div>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>A more constrained approach</h2>
+					<p>
+						How to solve?
+						\[\frac{\mathrm{d}^2y}{\mathrm{d}t^2} + 2 \frac{\mathrm{d}y}{\mathrm{d}t} + 10y = 0\]
+					</p>
+					<p class="fragment" style="color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[z^2 + 2z + 10 = 0 \Rightarrow z = -1 \pm 3\sqrt{-1}\]
+					</p>
+					<p class="fragment">
+						Solution Space
+						\[y(t) = (\textcolor{#b51963}{c_1} \cdot e^{-t} \cos 3t + \textcolor{#b51963}{c_2} \cdot e^{-t} \sin 3t)\]
+					</p>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>A more constrained approach</h2>
+					<p style="font-size: 66%;">
+						How to solve?
+						\[\frac{\mathrm{d}^2y}{\mathrm{d}t^2} + 2 \frac{\mathrm{d}y}{\mathrm{d}t} + 10y = 0\]
+					</p>
+					<p style="font-size: 66%; color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[z^2 + 2z + 10 = 0 \Rightarrow z = -1 \pm 3\sqrt{-1}\]
+					</p>
+					<p style="font-size: 66%;">
+						Solution Space
+						\[y(t) = (\textcolor{#b51963}{c_1} \cdot e^{-t} \cos 3t + \textcolor{#b51963}{c_2} \cdot e^{-t} \sin 3t)\]
+					</p>
+					<p style="font-size: bigger; border: 5px solid black; border-radius: 25px; display: inline-block; padding: 1em">
+						Gaussian process prior
+						\[Y(t) \sim (\textcolor{#b51963}{C_1} \cdot e^{-t} \cos 3t + \textcolor{#b51963}{C_2} \cdot e^{-t} \sin 3t) + \textcolor{#b51963}{\epsilon}\]
+						where
+						\[
+						\textcolor{#b51963}{C_1 \sim \mathcal{N}(0, \sigma_1)}, 
+						\textcolor{#b51963}{C_2 \sim \mathcal{N}(0, \sigma_2)}, 
+						\textcolor{#b51963}{\epsilon \sim \mathcal{N}(0, \sigma_0)}
+						\]
+					</p>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>A more constrained approach</h2>
+					<p style="font-size: 66%;">
+						How to solve?
+						\[\frac{\mathrm{d}^2y}{\mathrm{d}t^2} + 2 \frac{\mathrm{d}y}{\mathrm{d}t} + 10y = 0\]
+					</p>
+					<p style="font-size: 66%; color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[z^2 + 2z + 10 = 0 \Rightarrow z = -1 \pm 3\sqrt{-1}\]
+					</p>
+					<p style="font-size: 66%;">
+						Solution Space
+						\[y(t) = (\textcolor{#b51963}{c_1} \cdot e^{-t} \cos 3t + \textcolor{#b51963}{c_2} \cdot e^{-t} \sin 3t)\]
+					</p>
+					<p style="font-size: 66%; border: 5px solid black; border-radius: 25px; display: inline-block; padding: 1em">
+						Gaussian process prior
+						\[Y(t) \sim (\textcolor{#b51963}{C_1} \cdot e^{-t} \cos 3t + \textcolor{#b51963}{C_2} \cdot e^{-t} \sin 3t) + \textcolor{#b51963}{\epsilon}\]
+						where
+						\[
+						\textcolor{#b51963}{C_1 \sim \mathcal{N}(0, \sigma_1)}, 
+						\textcolor{#b51963}{C_2 \sim \mathcal{N}(0, \sigma_2)}, 
+						\textcolor{#b51963}{\epsilon \sim \mathcal{N}(0, \sigma_0)}
+						\]
+					</p>
+					<p style="color: #0073e6">
+						Algebra: determine suitable frequencies
+					</p>
+					<p style="color: #b51963">
+						Stochastic: weigh frequencies
+					</p>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h3>Gaussian Process</h3>
+					<h4>(or ridge regression)</h4>
+					<div class="r-hstack">
+						<ul style="list-style: none; margin: 0; line-height: 2em;">
+							<li>✅ 3 parameters</li>
+							<li>✅ Fast convergence</li>
+							<li>✅ Good inter/extrapolation</li>
+							<li>✅ Exact solution</li>
+							<li>✅ No extra points</li>
+						</ul>
+						<img style="margin-left: 3em;" data-src="assets/EPGP.gif" height="800px">
+					</div>
+				</section>
+
+				<!--
+				<section data-auto-animate="" style="top: 0px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h3>Gaussian Processes</h3>
+					<p>
+						Assume&nbsp;<b>Gaussian function values</b>&nbsp;of the regression function&nbsp;$f$.
+					</p>
+					<br>
+					<br>
+					<div style="scale: 150%">
+						<img src="tikz/GaussianRegressionFunction-1.png" />
+					</div>
+				</section>
+				-->
+
+				<!--
+				<section data-auto-animate="" style="top: 0px; display: none" aria-hidden="true" class="future" hidden="">
+					<h3>Gaussian Processes</h3>
+					<div style="scale: 66%">
+						<img src="tikz/GaussianRegressionFunction-1.png" />
+					</div>
+					<div style="scale: 100%; border: 3px solid black; border-radius: 1em; padding: 1em">
+						A <b>Gaussian Process</b> is a distribution on functions such that the evaluations $f(x_1),\ldots,f(x_n)$ at any $x_1,\ldots,x_n$ are jointly Gaussian.
+					</div>
+				</section>
+				-->
+
+				<!--
+				<section style="top: 540px; display: none" aria-hidden="true" class="future" hidden="">
+					<h3>Characterizing Gaussian Processes</h3>
+					<div style="scale: 100%">
+						<table>
+							<thead>
+							<tr>
+								<th>Gaussian distribution $1$-dim</th>
+								<th class="fragment" data-fragment-index="2">Gaussian distribution $n$-dim</th>
+								<th class="fragment" data-fragment-index="3">Gaussian process</th>
+							</tr>
+							</thead>
+							<tbody>
+							<tr>
+								<td>$\mathcal{N}(\mu,\sigma^2)$</td>
+								<td class="fragment" data-fragment-index="2">$\mathcal{N}(\mu,\Sigma)$</td>
+								<td class="fragment" data-fragment-index="3">$\mathcal{GP}(\mu(x),k(x_1,x_2))$</td>
+							</tr>
+							<tr>
+								<td>Mean $\mu$</td>
+								<td class="fragment" data-fragment-index="2">Mean vector $\mu$</td>
+								<td class="fragment" data-fragment-index="3">Mean function $\mu$</td>
+							</tr>
+							<tr>
+								<td>Variance $\sigma$</td>
+								<td class="fragment" data-fragment-index="2">Covariance matrix $\Sigma$</td>
+								<td class="fragment" data-fragment-index="3">Covariance function $k$</td>
+							</tr>
+							</tbody>
+						</table>
+					</div>
+					<div class="fragment" data-fragment-index="4" style="scale: 100%; margin: 50px">
+						Set mean function to the constant zero function (normalize data).
+					</div>
+					<div class="fragment" data-fragment-index="5" style="scale: 100%; margin: 50px; border: 3px solid black; border-radius: 1em; padding: 1em">
+						It remains to encode information in the covariance function.
+					</div>
+				</section>
+				-->
+
+				<!--
+				<section data-auto-animate="" style="top: 540px; display: none" aria-hidden="true" class="future" hidden="">
+					<h3>Gaussian Process Covariance Functions</h3>
+					<div style="scale: 100%">
+						<img src="assets/Mat32_l030_color_lik_-000000.png" /><br>
+						<div data-id="C1">$C^1$: differentiable realizations</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none" aria-hidden="true" class="future" hidden="">
+					<h3>Gaussian Process Covariance Functions</h3>
+					<div class="r-hstack">
+						<div style="scale: 100%">
+							<img src="assets/Mat32_l030_color_lik_-000000.png" />
+							<div data-id="C1">$C^1$: differentiable realizations</div>
+						</div>
+						<div style="scale: 100%">
+							<img src="assets/SE_l030_color_lik_-000000.png" />
+							<div data-id="Ci">$C^\infty$: smooth realizations</div>
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none" aria-hidden="true" class="future" hidden="">
+					<h3>Gaussian Process Covariance Functions</h3>
+					<div class="r-hstack">
+						<div style="scale: 100%">
+							<img src="assets/SE_l030_color_lik_-000000.png" />
+							<div data-id="Ci">$C^\infty$: smooth realizations</div>
+						</div>
+						<div style="scale: 100%">
+							<img src="assets/SE_reg_l030_noise_000_color_lik_-13765543.png" />
+							<div data-id="conditioned">...conditioned on data</div>
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 0px; display: none" aria-hidden="true" class="future" hidden="">
+					<h3>Gaussian Process Covariance Functions</h3>
+					<div class="r-hstack" style="scale: 100%">
+						<div>
+							<img src="assets/SE_reg_l030_noise_000_color_lik_-13765543.png" />
+							<div data-id="conditioned">...conditioned on data</div>
+						</div>
+						<div>
+							<img src="assets/SE_reg_l030_noise_002_color_lik_-2076717.png" />
+							<div data-id="conditioned">...conditioned on noisy data</div>
+						</div>
+					</div>
+				</section>
+				-->
+
+				<!--
+				<section style="top: 540px; display: none; text-align: left" aria-hidden="true" class="future" hidden="">
+					<h3 style="text-align: center;">Realizations and their Support</h3>
+					<br>
+					<div class="fragment" data-fragment-index="2" style="scale: 100%">
+						<h4>Trivial example: linear regression</h4>
+						The linear covariance function
+						\[k(t,t')=f(t)\cdot f(t')\]
+						induces a GP $\textcolor{#b51963}{\mathcal{N}(0,1^2)}\cdot f(t)$ with realizations equal to the space $\mathcal{H}(k)=\R\cdot (t\mapsto f(t))$.
+					</div>
+					<br>
+					<div class="fragment" data-fragment-index="3" style="scale: 100%">
+						<h4>Non-trivial example: linear regression</h4>
+						The squared exponential covariance function \[k(t,t')=\exp\left(-\frac{1}{2}(t-t')^2\right)\] induces a GP with realizations dense in $C^\infty(\R,\R)$ with Fr&egrave;chet topology.
+					</div>
+				</section>
+				-->
+
+				<!--
+				<section data-auto-animate="" style="display: none; scale=66%; text-align: left" aria-hidden="true" class="future" hidden="">
+					<h3 style="text-align: center;">Linear Systems (in the sense of linear algebra)</h3>
+					<br>
+					<div data-id="box1" style="font-size:90%">
+						For $\mathcal{F}=C^\infty(\R,\R)$ and $A = \begin{bmatrix} 2 & -3 \end{bmatrix}$	consider
+						\[
+							\begin{align*}
+								\operatorname{Sol}_\mathcal{F}(A) :&= \left\{ \begin{bmatrix} f_1(x) \\ f_2(x)\end{bmatrix}\in\mathcal{F}^{2\times1} \,\middle|\, A \cdot \begin{bmatrix} f_1(x) \\ f_2(x)\end{bmatrix} =0\right\}
+								= \left\{ \begin{bmatrix} f_1(x) \\ f_2(x)\end{bmatrix}\in\mathcal{F}^{2\times1} \,\middle|\, 2f_1(x)-3f_2(x)=0 \right\}
+							\end{align*}
+						\]
+					</div>
+				</section>
+				<section data-auto-animate="" style="display: none; scale=66%; text-align: left" aria-hidden="true" class="future" hidden="">
+					<h3 style="text-align: center;">Linear Systems (in the sense of linear algebra)</h3>
+					<br>
+					<div data-id="box1" style="font-size:70%;">
+						For $\mathcal{F}=C^\infty(\R,\R)$ and $A = \begin{bmatrix} 2 & -3 \end{bmatrix}$	consider
+						\[
+							\begin{align*}
+								\operatorname{Sol}_\mathcal{F}(A) :&= \left\{ \begin{bmatrix} f_1(x) \\ f_2(x)\end{bmatrix}\in\mathcal{F}^{2\times1} \,\middle|\, A \cdot \begin{bmatrix} f_1(x) \\ f_2(x)\end{bmatrix} =0\right\}
+								= \left\{ \begin{bmatrix} f_1(x) \\ f_2(x)\end{bmatrix}\in\mathcal{F}^{2\times1} \,\middle|\, 2f_1(x)-3f_2(x)=0 \right\}
+							\end{align*}
+						\]
+					</div>
+					<div data-id="box2">
+						Use
+						$\textcolor{#0073e6}{B = \begin{bmatrix} 3 \\ 2 \end{bmatrix}}$
+						as parametrization:
+						\[\operatorname{Sol}_\mathcal{F}(A) = \textcolor{#0073e6}{B}\cdot\mathcal{F} = \left\{ \textcolor{#0073e6}{B}\cdot f(x) \,\middle|\, f(x)\in\mathcal{F} \right\}\]
+						since $A\cdot \textcolor{#0073e6}{B}\cdot f(x) =0$.
+					</div>
+				</section>
+				<section data-auto-animate="" style="display: none; scale=66%; text-align: left" aria-hidden="true" class="future" hidden="">
+					<h3 style="text-align: center;">Linear Systems (in the sense of linear algebra)</h3>
+					<br>
+					<div data-id="box1" style="font-size:70%;">
+						For $\mathcal{F}=C^\infty(\R,\R)$ and $A = \begin{bmatrix} 2 & -3 \end{bmatrix}$	consider
+						\[
+							\begin{align*}
+								\operatorname{Sol}_\mathcal{F}(A) :&= \left\{ \begin{bmatrix} f_1(x) \\ f_2(x)\end{bmatrix}\in\mathcal{F}^{2\times1} \,\middle|\, A \cdot \begin{bmatrix} f_1(x) \\ f_2(x)\end{bmatrix} =0\right\}
+								= \left\{ \begin{bmatrix} f_1(x) \\ f_2(x)\end{bmatrix}\in\mathcal{F}^{2\times1} \,\middle|\, 2f_1(x)-3f_2(x)=0 \right\}
+							\end{align*}
+						\]
+					</div>
+					<div data-id="box2" style="font-size:70%;">
+						Use
+						$\textcolor{#0073e6}{B = \begin{bmatrix} 3 \\ 2 \end{bmatrix}}$
+						as parametrization:
+						\[\operatorname{Sol}_\mathcal{F}(A) = \textcolor{#0073e6}{B}\cdot\mathcal{F} = \left\{ \textcolor{#0073e6}{B}\cdot f(x) \,\middle|\, f(x)\in\mathcal{F} \right\}\]
+						since $A\cdot \textcolor{#0073e6}{B}\cdot f(x) =0$.
+					</div>
+					<div>
+					Taking a GP prior $g=\mathcal{GP}(0,k)$ for $f\in\mathcal{F}$ yields a GP prior
+					\[
+						\begin{align*} 
+							\textcolor{#0073e6}{B_*}g:=\mathcal{GP}(0,\textcolor{#0073e6}{BkB^T})=\mathcal{GP}\left(0,\begin{bmatrix}9k&6k\\6k&4k\end{bmatrix}\right)
+						\end{align*}
+					\]
+					for $\operatorname{Sol}_\mathcal{F}(A)$.
+					</div>
+				</section>
+				-->
+				
+				<!--
+				<section data-auto-animate="" style="top: 540px; display: none" aria-hidden="true" class="future" hidden="">
+					<p style="font-size: bigger; border: 5px solid black; border-radius: 25px; display: inline-block; padding: 1em">
+						The class of GPs is closed under linear operators under mild assumptions.
+					</p>
+					<div style="scale: 100%" class="fragment">
+						Use
+						$B = \begin{bmatrix} 1 \\ \partial_x \end{bmatrix}$
+						as parametrization and $g=\mathcal{GP}(0,k)$:
+						\[
+							\begin{align*}
+								\rightsquigarrow 
+								B_*g:=\mathcal{GP}(0,BkB'^T)=\mathcal{GP}\left(0,\begin{bmatrix}k(x,x')&\frac{\partial}{\partial x'}k(x,x')\\\frac{\partial}{\partial x}k(x,x')&\frac{\partial^2}{\partial x\partial x'}k(x,x')\end{bmatrix}\right)
+							\end{align*}
+						\]
+					</div>
+					<div class="r-hstack" style="scale: 100%">
+						<img class="fragment" src="tikz/Derivative0-1.png" />
+						<img class="fragment" src="tikz/Derivative1-1.png" />
+					</div>
+				</section>
+				-->
+				
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Overview</h2>
+					<br />
+					<div style="font-size:33%;">(Of course, there are many PINN approaches, numerical solvers, and alternatives like neural operators.)</div>
+					<br />
+					<table>
+					<tr><td></td><th>EPGP (ours)</th><th>S-EPGP(ours)</th><th>Vanilla PINN</th><th>Vanilla Num. Solver</th></tr>
+					<tr><th>Differential equations</th><td><font color="gold">linear, c.c.</td><td><font color="gold">linear, c.c.</td><td><font color="green">any</td><td><font color="gold">well-posed</td></tr>
+					<tr class="fragment" data-fragment-index="1"><th>Additional Information</th><td>data</td><td>data</td><td>data</td><td>IC/BC</td></tr>
+					<tr class="fragment" data-fragment-index="2"><th>Evaluation time</th><td><font color="gold">$\approx$ data</td><td><font color="green">$\approx$ sparsity</td><td><font color="green"><font color="green">neural net</td><td><font color="red">mediocre</td></tr>
+					<!--<tr><th>Model</th><td>GP</td><td>GP</td><td>NN</td><td>Point evaluations</td></tr>-->
+					<tr class="fragment" data-fragment-index="3"><th>Solutions?</th><td><font color="green">yes</td><td><font color="green">yes</td><td>approx. near data</td><td><font color="green">yes</td></tr>
+					<!--<tr><th>Computation</th><td>Marginalization</td><td>optimization</td><td>optimization</td><td>iteration</td></tr>-->
+					<tr class="fragment" data-fragment-index="4"><th>Prerequisites</th><td><font color="red">integral</td><td><font color="green">-</td><td><font color="green">-</td><td><font color="green">-</td></tr>
+					<tr class="fragment" data-fragment-index="5"><th>Sampling</th><td><font color="green">yes</td><td><font color="green">yes</td><td><font color="red">no</td><td>not applicable</td></tr>
+					<tr></tr>
+					</table>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Another ODE example</h2>
+					<p>
+						How to solve?
+						\[\frac{\mathrm{d}^4y}{\mathrm{d}t^4} + 2 \frac{\mathrm{d}^2y}{\mathrm{d}t^2} + y = 0\]
+					</p>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Another ODE example</h2>
+					<p style="font-size: 66%;">
+						How to solve?
+						\[\frac{\mathrm{d}^4y}{\mathrm{d}t^4} + 2 \frac{\mathrm{d}^2y}{\mathrm{d}t^2} + y = 0\]
+					</p>
+					<p style="color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[z^4 + 2z^2 + 1 = 0 \Rightarrow z =  \pm i\text{ with multiplicity 2}\] 
+					</p>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Another ODE example</h2>
+					<p style="font-size: 66%;">
+						How to solve?
+						\[\frac{\mathrm{d}^4y}{\mathrm{d}t^4} + 2 \frac{\mathrm{d}^2y}{\mathrm{d}t^2} + y = 0\]
+					</p>
+					<p style="font-size: 66%; color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[z^4 + 2z^2 + 1 = 0 \Rightarrow z =  \pm i\text{ with multiplicity 2}\] 
+					</p>
+					<p>
+						Solution Space
+						\[y(t) = \textcolor{#b51963}{c_1}\textcolor{#0073e6}{t}e^{\textcolor{#0073e6}{-i}t} + \textcolor{#b51963}{c_2}e^{\textcolor{#0073e6}{-i}t}+\textcolor{#b51963}{c_3}\textcolor{#0073e6}{t}e^{\textcolor{#0073e6}{i}t}+\textcolor{#b51963}{c_4}e^{\textcolor{#0073e6}{i}t}\]
+					</p>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Another ODE example</h2>
+					<p style="font-size: 66%;">
+						How to solve?
+						\[\frac{\mathrm{d}^4y}{\mathrm{d}t^4} + 2 \frac{\mathrm{d}^2y}{\mathrm{d}t^2} + y = 0\]
+					</p>
+					<p style="font-size: 66%; color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[z^4 + 2z^2 + 1 = 0 \Rightarrow z =  \pm i\text{ with multiplicity 2}\] 
+					</p>
+					<p style="font-size: 66%;">
+						Solution Space
+						\[y(t) = \textcolor{#b51963}{c_1}\textcolor{#0073e6}{t}e^{\textcolor{#0073e6}{-i}t} + \textcolor{#b51963}{c_2}e^{\textcolor{#0073e6}{-i}t}+\textcolor{#b51963}{c_3}\textcolor{#0073e6}{t}e^{\textcolor{#0073e6}{i}t}+\textcolor{#b51963}{c_4}e^{\textcolor{#0073e6}{i}t}\]
+					</p>
+					<p style="border: 5px solid black; border-radius: 25px; display: inline-block; padding: 1em">
+						Gaussian process prior
+						\[Y(t) \sim \textcolor{#b51963}{C_1}\textcolor{#0073e6}{t}e^{\textcolor{#0073e6}{-i}t} + \textcolor{#b51963}{C_2}e^{\textcolor{#0073e6}{-i}t}+\textcolor{#b51963}{C_3}\textcolor{#0073e6}{t}e^{\textcolor{#0073e6}{i}t}+\textcolor{#b51963}{C_4}e^{\textcolor{#0073e6}{i}t} + \textcolor{#b51963}{\epsilon}\]
+						where
+						\[
+						\textcolor{#b51963}{C_j \sim \mathcal{N}(0, \sigma_j)}, 
+						\textcolor{#b51963}{\epsilon \sim \mathcal{N}(0, \sigma_0)}
+						\]
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Principle for ODEs</h2>
+					<p>
+						How to solve?
+						\[\sum_{j=0}^k \alpha_j\frac{\mathrm d^jy}{\mathrm d t^j} = 0\]
+					</p>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Principle for ODEs</h2>
+					<p style="font-size: 66%;">
+						How to solve?
+						\[\sum_{j=0}^k \alpha_j\frac{\mathrm d^jy}{\mathrm d t^j} = 0\]
+					</p>
+					<p style="color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[\sum_{j=0}^k \alpha_jz^j=0 \Rightarrow z\in V =  \text{ complex roots with multiplicities}\] 
+					</p>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Principle for ODEs</h2>
+					<p style="font-size: 66%;">
+						How to solve?
+						\[\sum_{j=0}^k \alpha_j\frac{\mathrm d^jy}{\mathrm d t^j} = 0\]
+					</p>
+					<p style="font-size: 66%; color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[\sum_{j=0}^k \alpha_jz^k=0 \Rightarrow z\in V =  \text{ complex roots with multiplicities}\] 
+					</p>
+					<p>
+						Solution Space
+						\[y(t) = \sum_{\textcolor{#0073e6}{z}\in V}\sum_{\text{multipliers for z}}\textcolor{#b51963}{c_{h}}\textcolor{#0073e6}{B_h(t)}e^{\textcolor{#0073e6}{z}t} \]
+					</p>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Principle for ODEs</h2>
+					<p style="font-size: 66%;">
+						How to solve?
+						\[\sum_{j=0}^k \alpha_j\frac{\mathrm d^jy}{\mathrm d t^j} = 0\]
+					</p>
+					<p style="font-size: 66%; color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[\sum_{j=0}^k \alpha_jz^k=0 \Rightarrow z\in V =  \text{ complex roots with multiplicities}\] 
+					</p>
+					<p style="font-size: 66%;">
+						Solution Space
+						\[y(t) = \sum_{\textcolor{#0073e6}{z}\in V}\sum_{\text{multipliers for z}}\textcolor{#b51963}{c_{h}}\textcolor{#0073e6}{B_h(t)}e^{\textcolor{#0073e6}{z}t} \]
+					</p>
+					<p style="font-size: 100%;">
+						Principle for ODEs:
+					</p>
+						<p style="font-size: 100%;">
+						All solutions are linear combination of exponential-polynomial solutions.
+					</p>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<div>
+						<h2>Fourier &amp; Heat Equation</h2>
+						<p style="font-size: 75%;">
+							\[\frac{\partial T}{\partial  t}-\frac{\partial^2 T}{\partial x^2}=0\]
+						</p>
+						<video style="width: 75%;" data-autoplay="" muted="" loop="" src="assets/FourierHeat.mp4"></video>
+						<div style="font-size: 66%;">
+						Source: 3Blue1Brown, <a href="https://www.youtube.com/watch?v=ToIXSwZ1pJU">https://www.youtube.com/watch?v=ToIXSwZ1pJU</a>
+						</div>	
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<div>
+						<h2>Fourier &amp; Heat Equation</h2>
+						<p style="font-size: 50%;">
+							\[\frac{\partial T}{\partial  t}-\frac{\partial^2 T}{\partial x^2}=0\]
+						</p>
+						<video style="width: 25%;" data-autoplay="" muted="" loop="" src="assets/FourierHeat.mp4"></video>
+						<div style="font-size: 30%;">
+						Source: 3Blue1Brown, <a href="https://www.youtube.com/watch?v=ToIXSwZ1pJU">https://www.youtube.com/watch?v=ToIXSwZ1pJU</a>
+						</div>
+					</div>
+					<br />
+					<div style="font-size: 80%;">
+						<h4>Fourier (1807):</h4>
+						<ul>
+							<li>Noticed that $T_z(x,t)=e^{\textcolor{#0073e6}{-z^2}t+\textcolor{#0073e6}{iz}x}=e^{-z^2t}(\cos zx+i\sin zx)$ are solutions.
+							<li>Noticed linearity: $T^c(x,z)=\sum_{z=-N}^N \textcolor{#b51963}{c_z}e^{\textcolor{#0073e6}{-z^2}t+\textcolor{#0073e6}{iz}x}$ are solutions.
+							<li>Postulated density: All solutions $T$ can be approximated with solutions $T^c$.
+							<li>Solved from initial condition: If $T(x,0)=g(x)$ and $T\approx T^c$ then
+								\[g(x)= \sum_{z\in\mathbb Z} \textcolor{#b51963}{c_z}e^{\textcolor{#0073e6}{iz}x}.\]
+							<li>Invented Fourier series.
+						</ul>
+					</div>
+				</section>
+
+				<section>
+					<div>
+						<h4>Our goals</h4>
+						<ul>
+							<li>Use additional knowledge of linear PDE systems with constant coefficients.
+							<li>Construct a computationally nice probabily distribution on such PDE systems.
+							<li>Restricting to this important special case allows more suitable methods.
+							<li>Introduce two such methods: EPGP and S-EPGP.
+						</ul>
+					</div>
+				</section>
+				
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Principle for PDEs</h2>
+					<p>
+						All solutions are linear combination of exponential-polynomial solutions up to approximation.
+					</p>
+					<p>
+					Let $A \in R^{\ell' \times {\ell}}$ for $R=\R[\partial_{x_1},\ldots,\partial_{x_n}]$
+					</p>
+					<p>
+						Want to solve $Af=0$ for $f=(f_1,f_2,\ldots,f_\ell)$.
+					</p>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Principle for PDEs</h2>
+					<p style="font-size: 66%;">
+						All solutions are linear combination of exponential-polynomial solutions up to approximation.
+					</p>
+					<p style="font-size: 66%;">
+					Let $A \in R^{\ell' \times {\ell}}$ for $R=\R[\partial_{x_1},\ldots,\partial_{x_n}]$
+					</p>
+					<p style="font-size: 66%;">
+						Want to solve $Af=0$ for $f=(f_1,f_2,\ldots,f_\ell)$.
+					</p>
+					<p style="font-size: 100%; color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[\ker A(z)=\{0\} \Rightarrow z\in V =  \text{ characteristic variety}\] 
+					</p>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Principle for PDEs</h2>
+					<p style="font-size: 66%;">
+						All solutions are linear combination of exponential-polynomial solutions up to approximation.
+					</p>
+					<p style="font-size: 66%;">
+					Let $A \in R^{\ell' \times {\ell}}$ for $R=\R[\partial_{x_1},\ldots,\partial_{x_n}]$
+					</p>
+					<p style="font-size: 66%;">
+						Want to solve $Af=0$ for $f=(f_1,f_2,\ldots,f_\ell)$.
+					</p>
+					<p style="font-size: 66%; color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[\ker A(z)=\{0\} \Rightarrow z\in V =  \text{ characteristic variety}\] 
+					</p>
+					<p style="font-size: 100%;">
+						Solution Space is the closure of
+						\[f(x) = \sum_{j=1}^M\sum_{h=1}^m\textcolor{#b51963}{c_{j}}\textcolor{#0073e6}{B_h(x,z_j)}e^{\textcolor{#0073e6}{z_j}\cdot x} \]
+						where $\textcolor{#0073e6}{z_j}\in V$.
+					</p>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Principle for PDEs</h2>
+					<p style="font-size: 66%;">
+						All solutions are linear combination of exponential-polynomial solutions up to approximation.
+					</p>
+					<p style="font-size: 66%;">
+					Let $A \in R^{\ell' \times {\ell}}$ for $R=\R[\partial_{x_1},\ldots,\partial_{x_n}]$
+					</p>
+					<p style="font-size: 66%;">
+						Want to solve $Af=0$ for $f=(f_1,f_2,\ldots,f_\ell)$.
+						</p>
+					<p style="font-size: 66%; color: #0073e6">
+						Algebraic preprocessing: characteristic frequencies
+						\[\ker A(z)=\{0\} \Rightarrow z\in V =  \text{ characteristic variety}\] 
+					</p>
+					<p style="font-size: 66%;">
+						Solution Space is the closure of
+						\[f(x) = \sum_{j=1}^M\sum_{h=1}^m\textcolor{#b51963}{c_{j}}\textcolor{#0073e6}{B_h(x,z_j)}e^{\textcolor{#0073e6}{z_j}\cdot x} \]
+						where $\textcolor{#0073e6}{z_j}\in V$.
+					</p>
+					<p>
+						This is the FUNDAMENTAL PRINCIPLE of Ehrenpreis-Palamodov ('70).
+					</p>
+				</section>
+
+				<!--
+				<section>
+					<h2>
+						Bringing GPs in the game
+					</h2>
+					Simplifying assumptions: $s=1$ and $B_{i,j}=1$. Left with 
+					\[	
+							\begin{align*}
+								f(x) &= \sum_h c_he^{\langle x, z_h \rangle}\text{ where }z_h\in V.
+							\end{align*}
+						\]
+						Turn $f(x)$ into a GP: $c_h\sim\mathcal N(0,\Sigma)$.
+						<p>
+							Rough idea:
+							</p>
+						</p>	
+						<ul style="position: relative; left: -95px;">
+							<li><span>Write $f(x)=f(x;z_h)$ for fixed $z_h$</span>
+							<li><span>Start a gradient descent in $z$</span>
+							<li><span>Fit the data $f(x_i;z_j)\approx f_i$ at each step</span>
+						</ul>
+				</section>
+				-->
+				
+				
+					<!--
+					<div class="fragment">
+						Trivial example: no PDE constraints
+						<br>
+						leads to $\textcolor{#0073e6}{V = \mathbb{C}}$ and $\textcolor{#0073e6}{B(x,z) = 1}$.
+						\[
+							\begin{align*}
+								k_{\operatorname{EPGP}}(x,x')=\int_{z \in \R} e^{\sqrt{-1}\langle x-x', z \rangle} \textcolor{#b51963}{e^{-\frac{\|z\|^2}{2}} \, \mathrm{d}z} = \sqrt{2\pi} e^{-\frac{\|x-x'\|^2}{2}}
+							\end{align*}
+						\]
+						This is the squared-exponential covariance!
+					</div>
+					-->
+				
+				
+				<!--
+				<section data-auto-animate="" style="top: 540px; display: none;text-align:left;" aria-hidden="true" class="future" hidden="">
+				
+					<div class="fragment">
+						<h3>Integration over varieties $V$</h3>
+						<ul>
+							<li>Only necessary in preprocessing and only once.
+							<li>Parametrizable varieties: integrate over preimage of the parametrization.
+							<li>General case: integrate over affine space $\mathbb{A}$ with finite cover $V\to\mathbb{A}$.
+						</ul>
+						<p></p>
+						<div>
+						(Later: S-EPGP avoides the integration.)
+						</div>
+					</div>
+				</section>
+				-->
+				
+				<!--
+				<section data-auto-animate="" style="top: 540px; display: none;text-align:left;" aria-hidden="true" class="future" hidden="">
+					<h2>Dealing with not-so-nice varieties $V$</h2>
+					<div>
+						<p>
+						For $\textcolor{#0073e6}{V}$ parametrizable, pushforward the integration over the preimage of the parametrization.
+						<br>
+						For example if $\textcolor{#0073e6}{V=V(y-x^2)}$, we compute 
+						\[
+							\begin{align*}
+								\int_{\textcolor{#0073e6}{V}} f(x,y) \, \textcolor{#b51963}{\mathrm{d}\mu(x,y)}=\int_{\textcolor{#0073e6}{\mathbb{C}}} f(x,\textcolor{#0073e6}{x^2}) \, \textcolor{#b51963}{\mathrm{d}\mu'(x)}.
+							\end{align*}
+						\]
+					</div>
+					<br>
+					<div class="fragment">
+						In the general case, construct a parametrization implicitly.
+						<br>
+						Example: $\textcolor{#0073e6}{V=V(x^3-y^2+z^2)}$, solve $\textcolor{#0073e6}{z = \pm \sqrt{y^2 - x^3}}$.
+						We say $z$ <i>lies over</i> $x$ and $y$.
+						\[
+							\begin{align*}
+								&\int_{\textcolor{#0073e6}{V}} f(x,y,z) \, \textcolor{#b51963}{\mathrm{d}\mu(x,y,z)}=\\
+								&\int_{\textcolor{#0073e6}{\mathbb{C}^2}} f(x,y,\textcolor{#0073e6}{\sqrt{y^2-x^3}}) \, \textcolor{#b51963}{\mathrm{d}\mu_1(x,y)} + \int_{\textcolor{#0073e6}{\mathbb{C}^2}} f(x,y,\textcolor{#0073e6}{-\sqrt{y^2-x^3}}) \, \textcolor{#b51963}{\mathrm{d}\mu_2(x,y)}.
+							\end{align*}
+						\]
+						This <b>implicit parametrization trick</b> is even algorithmic. 
+					</div>
+				</section>
+				-->
+				
+				
+
+				
+				
+				
+				<!--
+				<section style="top: 540px; display: none;text-align:left;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 1D</h2>
+					<div>						
+						$A(\partial_x,\partial_t) = \begin{bmatrix}\partial_x^2 - \partial_t^2\end{bmatrix}$.
+						Thus $\textcolor{#0073e6}{V_j = V(z_1+(-1)^jz_2)}$ and $\textcolor{#0073e6}{B_j = 1}$ for $j=1,2$.
+						\[
+							\begin{align*}
+									k_\text{wave}(x,t;x',t') &= \int_{z \in \R} \left( e^{\sqrt{-1}z(x-t)} + e^{\sqrt{-1}z(x+t)} \right) \cdot  \textcolor{#b51963}{e^{-\frac{z^2}{2}}} \cdot \left( e^{-\sqrt{-1}z(x'-t')} + e^{\sqrt{-1}z(x'+t')} \right) \, \textcolor{#b51963}{\mathrm{d}\mathcal{L}(z)}\\
+									&= \sqrt{2\pi} \bigl( e^{-\frac{((x-t)-(x'-t'))^2}{2}} + e^{-\frac{((x-t)-(x'+t'))^2}{2}} +  e^{-\frac{((x+t)-(x'-t'))^2}{2}} + e^{-\frac{((x+t)-(x'+t'))^2}{2}}\bigr)
+							\end{align*}
+						\]
+						Integrating over $\sqrt{-1}\R$ removes non-stable solutions, e.g. $e^{x+t}$.
+					</div>
+					<div class="fragment">
+						<br>
+						d'Alembert, 1747: solutions are superpositions of traveling waves.
+						<br>
+						Fewer summands suffice, e.g. $\phi_1(x+t) + \phi_2(x-t)$, where $\phi_1,\phi_2 \sim GP(0, e^{-\frac{(x-x')^2}{2}})$
+						\[
+							\begin{align*}
+								k_2(x,t;x',t') = e^{-\frac{((x+t)-(x'+t'))^2}{2}} + e^{-\frac{((x-t)-(x'-t'))^2}{2}}
+							\end{align*}
+						\]
+					</div>
+				</section>
+				-->
+
+			
+				<!--
+				<section data-auto-animate="" style="top: 540px; display: none;text-align:left;" aria-hidden="true" class="future" hidden="">
+					<h2>Scale parameters in EPGP</h2>
+					<p>Modify the variance $\textcolor{#b51963}{\sigma^2}$ in the frequency prior to balance between following the data and smoothness.</p>
+					<div>
+						<video data-autoplay="" loop="" src="assets/melting_face_2.mp4"></video>
+						<video data-autoplay="" loop="" src="assets/melting_face_20.mp4"></video>
+					</div>
+				</section>
+				-->
+				<!--
+				<section data-auto-animate="" style="top: 540px; display: none;text-align:left;" aria-hidden="true" class="future" hidden="">
+					<h2>Scale parameters in EPGP</h2>
+					<p>Modify the variance $\textcolor{#b51963}{\sigma^2}$ in the frequency prior to balance between following the data and smoothness.</p>
+					<div>
+						<img style="width: 19%;" src="assets/face21.png">
+						<img style="width: 19%;" src="assets/face22.png">
+						<img style="width: 19%;" src="assets/face23.png">
+						<img style="width: 19%;" src="assets/face24.png">
+						<img style="width: 19%;" src="assets/face25.png">
+					</div>
+					<div>
+						<img style="width: 19%;" src="assets/face201.png">
+						<img style="width: 19%;" src="assets/face202.png">
+						<img style="width: 19%;" src="assets/face203.png">
+						<img style="width: 19%;" src="assets/face204.png">
+						<img style="width: 19%;" src="assets/face205.png">
+					</div>
+				</section>
+				-->
+				<!--
+				<section data-auto-animate="" style="top: 540px; display: none;text-align:left;" aria-hidden="true" class="future" hidden="">
+					<h2>Scale parameters in EPGP</h2>
+					<p>Modify the variance $\textcolor{#b51963}{\sigma^2}$ in the frequency prior to balance between following the data and smoothness.</p>
+					<div>
+						<img style="width: 49%;" src="assets/face21.png">
+						<img style="width: 49%;" src="assets/face201.png">
+					</div>
+				</section>
+				-->
+
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Fundamental Principle for PDEs</h2>
+					<p style="font-size: 66%;">
+						Explain Ehrenpreis-Palamodov in more detail:
+					</p>
+					<div style="margin: .5em; padding: .5em; border: 3px solid black; border-radius: 1em; text-align:left;">
+						<p>
+						Let $A \in R^{\ell' \times {\ell}}$ for $R=\R[\partial_{x_1},\ldots,\partial_{x_n}]$ and let $\Omega \subseteq \R^n$ be a convex, compact set.
+						There exist 
+						<ul>
+							<li><b>characteristic varieties</b> $\textcolor{#0073e6}{\{V_1,\dotsc,V_s\}}$ and
+							<li>$\ell\times1$ polynomial operators $\textcolor{#0073e6}{\{B_{i,1}(x, z), \dotsc, B_{i,m_i}(x,z)\}_{i=1,\dotsc,s}}$ in $2n$ variables,
+						</ul>
+						<br>
+						such that any smooth solution $f \colon \Omega \to \R^{\ell}$ to the equation $Af = 0$ <i>can be approximated</i> by
+						\[	
+							\begin{align*}
+								f(x) &= \sum_{i=1}^s \sum_{j=1}^{m_i}\sum_h \textcolor{#b51963}{c_h^{ij}} \textcolor{#0073e6}{B_{i,j}}(x, \textcolor{#0073e6}{z^{ij}_h}) e^{\langle x, \textcolor{#0073e6}{z^{ij}_h} \rangle}
+							\end{align*}
+						\]
+						where $\textcolor{#0073e6}{z^{ij}_h}\in V_i$. This is a NONLINEAR FOURIER SERIES with frequencies NOT from a lattice.
+						</p>
+					</div>
+					<div style="color: #0073e6">Algebraic precomputations are algorithmic and implemented in Macaulay2.</div>
+				
+				</section>
+
+
+				<section data-auto-animate="" style="top: 540px; display: none;text-align:left;" aria-hidden="true" class="future" hidden="">
+					<h2 style="text-align:center;">S-EPGP</h2>
+					<p>
+					Sparse version of EPGP.
+					<ul>
+						<li class="fragment">Define a GP prior with realizations of the form
+							\[
+								\begin{align*}
+									f(x) = \sum_{j=1}^m \sum_{i=1}^r \textcolor{#b51963}{C_{i,j}} \textcolor{#0073e6}{B_j}(x, \textcolor{#0073e6}{z_{i,j}}) e^{\langle x, \textcolor{#0073e6}{z_{i,j}} \rangle} =: \textcolor{#b51963}{C^T}\cdot \textcolor{#0073e6}{\phi(x)},
+								\end{align*}
+							\]
+						<!--<li class="fragment">The implicit parametrization trick allows to optimize the likelihood in affine space ($\textcolor{#0073e6}{z'_{i,j} \in \sqrt{-1} \R^d})$.
+							\[
+								\begin{align*}
+									f(x) &= \sum_{j=1}^m \sum_{i=1}^r \textcolor{#b51963}{c_{i,j}} \frac{1}{\textcolor{#0073e6}{|S_{z'_{i,j}}|}} \sum_{\textcolor{#0073e6}{z \in S_{z'_{i,j}}}} \textcolor{#0073e6}{B_j}(x, \textcolor{#0073e6}{z}) e^{\langle x, \textcolor{#0073e6}{z} \rangle}
+									=: \textcolor{#b51963}{\mathbf{w}}^T \textcolor{#0073e6}{\phi(x)},
+								\end{align*}
+							\]
+							$\textcolor{#0073e6}{S_{z'_{i,j}}}$ the finite set of points lying over $\textcolor{#0073e6}{z'_{i,j}}$, $\textcolor{#0073e6}{d = \dim V}$, and $\textcolor{#b51963}{\mathbf{w}}\,\&\,\textcolor{#0073e6}{\phi(x)}$ are vectors of length $mr$.-->
+						<li class="fragment">Turn $f(x)$ into a GP: $\textcolor{#b51963}{C_{i,j} \sim \mathcal{N}\left(0,  \Sigma\right)}$ for $\textcolor{#b51963}{\Sigma=\operatorname{diag}(\sigma_{i}^2)}$
+					</ul>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;text-align:left;" aria-hidden="true" class="future" hidden="">
+					<h2 style="text-align:center;">S-EPGP</h2>
+
+					<p>
+					Sparse version of EPGP.
+					Suitable, when integration is not possible.
+					<div style="font-size:66%;">
+						<ul>
+							<li>Define a GP prior with realizations of the form
+								\[
+									\begin{align*}
+										f(x) = \sum_{j=1}^m \sum_{i=1}^r \textcolor{#b51963}{C_{i,j}} \textcolor{#0073e6}{B_j}(x, \textcolor{#0073e6}{z_{i,j}}) e^{\langle x, \textcolor{#0073e6}{z_{i,j}} \rangle} =: \textcolor{#b51963}{C^T}\cdot \textcolor{#0073e6}{\phi(x)},
+									\end{align*}
+								\]
+							<!--<li>The implicit parametrization trick allows likelihood optimization in affine space over $\textcolor{#0073e6}{z'_{i,j} \in \sqrt{-1} \R^d}$.->>
+								\[
+									\begin{align*}
+										f(x) &= \sum_{j=1}^m \sum_{i=1}^r \textcolor{#b51963}{c_{i,j}} \frac{1}{\textcolor{#0073e6}{|S_{z'_{i,j}}|}} \sum_{\textcolor{#0073e6}{z \in S_{z'_{i,j}}}} \textcolor{#0073e6}{B_j}(x, \textcolor{#0073e6}{z}) e^{\langle x, \textcolor{#0073e6}{z} \rangle}
+										=: \textcolor{#b51963}{\mathbf{w}}^T \textcolor{#0073e6}{\phi(x)},
+									\end{align*}
+								\]
+								$\textcolor{#0073e6}{S_{z'_{i,j}}}$ the finite set of points lying over $\textcolor{#0073e6}{z'_{i,j}}$, $\textcolor{#0073e6}{d = \dim V}$, and $\textcolor{#b51963}{\mathbf{w}}\,\&\,\textcolor{#0073e6}{\phi(x)}$ are vectors of length $mr$.-->
+							<li>Turn $f(x)$ into a GP: $\textcolor{#b51963}{C_{i,j} \sim \mathcal{N}\left(0,  \Sigma\right)}$ for $\textcolor{#b51963}{\Sigma=\operatorname{diag}(\sigma_{i}^2)}$
+						</ul>
+					</div>
+					We then get a covariance function of the form
+							\[
+								\begin{align*}
+									k(x,x') = \textcolor{#0073e6}{\phi(x)}^H \textcolor{#b51963}{\Sigma} \textcolor{#0073e6}{\phi(x')}
+								\end{align*}
+							\]
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					<div class="r-hstack">
+						<video data-autoplay="" src="assets/wave2.mp4" loop="" style="margin-right: .5em;"></video>
+					</div>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D with initial speed</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					<div class="r-hstack">
+						<video data-autoplay="" src="assets/1. exp free.mp4" loop="" style="margin-right: .5em;"></video>
+					</div>
+				</section>
+				<!--
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					<div class="r-hstack">
+						<img src="assets/wave1.gif">
+						<img src="assets/wave2.gif">
+						<img src="assets/wave3.gif">
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					<div class="r-hstack">
+						<img src="assets/wavepost1.gif">
+						<img src="assets/wavepost2.gif">
+						<img src="assets/wavepost3.gif">
+					</div>
+				</section>
+				-->
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					Numerical solution:
+					<img src="assets/true_wave.png">	
+					Mean of our S-EPGP:
+					<img src="assets/gp_wave.png">
+					PINN:
+					<img src="assets/pinn_wave.png">
+					<br>
+					First three frames of the numerical solution are the training data, with a $21\times21$ spatial grid.
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					<br>
+					<div class="r-hstack">
+						<div>
+							Numerical solution
+							<video loop="" data-autoplay="" src="assets/true_wave.mp4"></video>
+						</div>
+						<div>
+							Mean of our S-EPGP
+							<video loop="" data-autoplay="" src="assets/gp_wave.mp4"></video>
+						</div>
+						<div>
+							PINN
+							<video loop="" data-autoplay="" src="assets/pinn_wave.mp4"></video>
+						</div>
+					</div>
+					First three frames of the numerical solution are the training data, with a $21\times21$ spatial grid.
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;text-align:left;" aria-hidden="true" class="future" hidden="">
+					<h2 style="text-align:center;">Heat Equation</h2>
+					<div style="position: relative; left: +350px;">
+						<img style="width: 25%;" src="assets/face21.png">
+						<br>
+						<img style="width: 25%;" src="assets/face201.png">
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: <none;text-align:left;" aria-hidden="true" class="future" hidden="">
+					<h2 style="text-align:center;">Heat Equation</h2>
+					<div style="position: relative; left: +350px;">
+						<img style="width: 25%;" src="assets/face21.png">
+						<video style="width: 25%;" data-autoplay="" loop="" src="assets/melting_face_2.mp4"></video>
+						<br>
+						<img style="width: 25%;" src="assets/face201.png">
+						<video style="width: 25%;" data-autoplay="" loop="" src="assets/melting_face_20.mp4"></video>
+					</div>
+				</section>
+				
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2 style="text-align:center;">Heat Equation</h2>
+					<center>
+						<div style="width: 70%;">
+							<img src="assets/heat1.png" />
+						</div>
+					</center>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2 style="text-align:center;">Heat Equation</h2>
+					<div class="r-hstack">
+						<div style="width: 20%;">
+							<img src="assets/heat1.png" />
+						</div>
+						<div style="width: 80%;">
+							<img src="assets/heat2.png" />
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2 style="text-align:center;">Heat Equation</h2>
+					<div class="r-hstack">
+						<div style="width: 20%;">
+							<img src="assets/heat1.png" />
+							<img src="assets/heat2.png" />
+						</div>
+						<div style="width: 80%;">
+							<img src="assets/heatdata1.png" />
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2 style="text-align:center;">Heat Equation</h2>
+					<div class="r-hstack">
+						<div style="width: 20%;">
+							<img src="assets/heat1.png" />
+							<img src="assets/heat2.png" />
+							<img src="assets/heatdata1.png" />
+						</div>
+						<div style="width: 80%;">
+							<img src="assets/heatdata2.png" />
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2 style="text-align:center;">Heat Equation</h2>
+					<div class="r-hstack">
+						<div style="width: 15%;">
+							<img src="assets/heat1.png" />
+							<img src="assets/heat2.png" />
+							<img src="assets/heatdata1.png" />
+							<img src="assets/heatdata2.png" />
+						</div>
+						<div style="width: 70%;">
+							Comparison to PINN<br>
+							<span style="font-size:33%;">Cuomo, Di Cola, Giampaolo, Rozza, Raissi, Piccialli; Scientific machine learning through physics-informed neural networks: Where we are and what’s next. Journal of Scientific Computing; arXiv:2201.05624</span>
+							<img src="assets/instance.png" />
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2 style="text-align:center;">Heat Equation</h2>
+					<div class="r-hstack">
+						<div style="width: 40%;">
+							<img src="assets/instance.png" />
+						</div>
+						<div style="width: 60%;">
+							<img src="assets/init_true.png" />
+							<img src="assets/init_false.png" />
+						</div>
+					</div>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2> Maxwell's equations</h2>
+					<div class="r-hstack">
+						<div>
+							<p>
+								\[\mathbf{E}(x,y,z,t)\]
+							<video data-autoplay="" src="assets/E.mp4" loop=""></video>
+						</div>
+						<div>
+						<div style="margin: .5em; padding: .5em; border: 3px solid black; border-radius: 1em;">
+							\[
+								\begin{align*}
+									\nabla \cdot \mathbf{E} &amp;= 0 \\
+									\nabla \cdot \mathbf{B} &amp;= 0 \\
+									\nabla \times \mathbf{E} &amp;= -\frac{\partial \mathbf{B}}{\partial t} \\
+									\nabla \times \mathbf{B} &amp;= \frac{\partial \mathbf{E}}{\partial t}
+								\end{align*}
+							\]
+						</div>
+							$V(z_t^2-z_x^2-z_y^2-z_z^2)$
+							<br>
+							3D wave equation
+						</div>
+						<div>
+							<p>
+								\[
+									\mathbf{B}(x,y,z,t)
+								\]
+							<video data-autoplay="" src="assets/B.mp4" loop=""></video>
+						</div>
+					</div>
+				</section>
+
+				<!--
+				<section data-auto-animate="" style="display: none" aria-hidden="true" class="future" hidden="">
+
+					<div>
+						<h3>LODE-GPs: Heater Example</h3>
+					</div>
+					<img src="tikz/Heater-1.png" style="position: absolute; top: 0px; left: 0px;" />
+					<div  class="r-hstack">
+						<div width="50%" class="fragment">
+						\[
+							\begin{align*}
+								\partial_tx(t) &= - (x(t)-y(t)) + u(t)\\
+								\partial_ty(t) &= + (x(t)-y(t))
+							\end{align*}
+						\]
+							<img class="fragment" src="tikz/ControlHeater-1.png" width="100%" />
+						</div>
+					</div>
+					<div class="fragment" style="position: absolute; bottom: -150px; right: 0px;">
+						\[
+							\begin{align*}
+								\underbrace{
+									\begin{bmatrix}
+										\partial_t+1 & -1 & -1\\
+										-1 & \partial_t+1 & 0
+									\end{bmatrix}
+								}_{=:A}
+								\cdot
+								\begin{bmatrix}
+									x(t)\\
+									y(t)\\
+									u(t)
+								\end{bmatrix}
+								=
+								\begin{bmatrix}
+									0\\
+									0
+								\end{bmatrix}
+							\end{align*}
+						\]
+					</div>
+				</section>
+				-->
+				
+				<!--
+				<section data-auto-animate="" style="display: none" aria-hidden="true" class="future" hidden="">
+					<div>
+						<div style="border: 5px solid black; border-radius: 25px; display: inline-block; padding: 1em; ">
+							<div>
+								<h3>Special case: Smith Normal Form</h3>
+							</div>
+							Given a matrix $A$ over a principal ideal domain (like $\R[x]$),<br/>
+							there are invertible matrices $S$ and $\textcolor{#0073e6}{T}$ s.t.
+							\[
+								\begin{align*}
+									SA\textcolor{#0073e6}{T}=D
+								\end{align*}
+							\]
+						where $D$ is a matrix with non-zero entries only on the diagonal.
+						</div>
+						<div data-id="box" style="border: 5px solid black; border-radius: 25px; display: inline-block; padding: 1em" class="fragment">
+							\[
+								\begin{align*}
+									Af=0 & \Leftrightarrow SA\textcolor{#0073e6}{T}\underbrace{\textcolor{#0073e6}{T^{-1}}f}_{=:h}=0 \\
+									& \Leftrightarrow Dh=0
+								\end{align*}
+							\]
+							If we get a GP prior for $h=\textcolor{#0073e6}{T^{-1}}f$, we have one for $f=\textcolor{#0073e6}{T}h$.
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="display: none" aria-hidden="true" class="future" hidden="">
+					<div style="r-hstack">
+						<div style="font-size: 40%; position: absolute; top: 0px; left: 0px;">
+							<div>
+								<h3>Smith Normal Form</h3>
+							</div>
+							<div data-id="box" style="border: 5px solid black; border-radius: 25px; display: inline-block; padding: 1em">
+								\[
+									\begin{align*}
+										Af=0 & \Leftrightarrow SAT\underbrace{T^{-1}f}_{=:h}=0 \\
+										& \Leftrightarrow Dh=0
+									\end{align*}
+								\]
+								If we get a GP prior for $h=T^{-1}f$, we have one for $f=Th$.
+							</div>
+						</div>
+						<div data-id="box1">
+							<b>Prior for $h$</b>
+						</div>
+						<div class="fragment" data-id="box2">
+							\[
+								\begin{align*}
+									\underbrace{
+										\begin{bmatrix}
+											1\\
+											& \partial_t-1\\
+											& & \partial_t^2+1 & 0 %& 0
+										\end{bmatrix}
+									}_D
+									\cdot
+									\begin{bmatrix}
+										h_1(t)\\
+										h_2(t)\\
+										h_3(t)\\
+										h_4(t)%\\
+										%h_5(t)
+									\end{bmatrix}
+									=0
+								\end{align*}
+							\]
+						</div>
+						<div class="fragment" data-id="box3">
+							We can easily solve such ODEs:
+							<br>
+							<table style="border: 5px solid black;">
+								<thead>
+									<tr><th></th><th> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; LODE-GPs</th><th></th></tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>$h_1(t)=0$</td><td></td><td>$k_1(t_1,t_2)=0$</td>
+									</tr>
+									<tr>
+										<td>$h_2(t)=\textcolor{#b51963}{c}\cdot\exp(t)$</td><td>$\textcolor{#b51963}{c\sim\mathcal{N}(0,\sigma^2)}$</td><td>$k_2(t_1,t_2)=\textcolor{#b51963}{\sigma^2}\exp(t_1)\exp(t_2)$</td>
+									</tr>
+									<tr>
+										<td>$h_3(t)=\textcolor{#b51963}{c_1}\sin(t)+\textcolor{#b51963}{c_2}\cos(t)$</td><td>$\textcolor{#b51963}{c_1,c_2\sim\mathcal{N}(0,\sigma^2)}$</td><td>$k_3(t_1,t_2)=\textcolor{#b51963}{\sigma^2}\cos(t_1-t_2)$</td>
+									</tr>
+									<tr>
+										<td>$h_4(t)$ arbitrary</td><td>$\text{\textcolor{#b51963}{Smooth prior}}$</td><td>$k_4(t_1,t_2)=\exp(-\frac{1}{2}(t_1-t_2)^2)$</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="display: none" aria-hidden="true" class="future" hidden="">
+					<div style="r-hstack">
+						<div style="font-size: 40%; position: absolute; top: 0px; left: 0px;">
+							<div>
+								<h3>Smith Normal Form</h3>
+							</div>
+							<div data-id="box" style="border: 5px solid black; border-radius: 25px; display: inline-block; padding: 1em">
+								\[
+									\begin{align*}
+										Af=0 & \Leftrightarrow SAT\underbrace{T^{-1}f}_{=:h}=0 \\
+										& \Leftrightarrow Dh=0
+									\end{align*}
+								\]
+								If we get a GP prior for $h=T^{-1}f$, we have one for $f=Th$.
+							</div>
+						</div>
+						<div style="font-size: 60%;" data-id="box1">
+							<b>Prior for $h$</b>
+						</div>
+						<div style="font-size: 60%;" data-id="box2">
+							\[
+								\begin{align*}
+									\underbrace{
+										\begin{bmatrix}
+											1\\
+											& \partial_t-1\\
+											& & \partial_t^2+1 & 0 %& 0
+										\end{bmatrix}
+									}_D
+									\cdot
+									\begin{bmatrix}
+										h_1(t)\\
+										h_2(t)\\
+										h_3(t)\\
+										h_4(t)%\\
+										%h_5(t)
+									\end{bmatrix}
+									=0
+								\end{align*}
+							\]
+						</div>
+						<div style="font-size: 60%;" data-id="box3">
+							We can easily solve such ODEs:
+							<br>
+							<table style="border: 5px solid black;">
+								<thead>
+									<tr><th></th><th> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; LODE-GPs</th><th></th></tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>$h_1(t)=0$</td><td></td><td>$k_1(t_1,t_2)=0$</td>
+									</tr>
+									<tr>
+										<td>$h_2(t)=\textcolor{#b51963}{c}\cdot\exp(t)$</td><td>$\textcolor{#b51963}{c\sim\mathcal{N}(0,\sigma^2)}$</td><td>$k_2(t_1,t_2)=\textcolor{#b51963}{\sigma^2}\exp(t_1)\exp(t_2)$</td>
+									</tr>
+									<tr>
+										<td>$h_3(t)=\textcolor{#b51963}{c_1}\sin(t)+\textcolor{#b51963}{c_2}\cos(t)$</td><td>$\textcolor{#b51963}{c_1,c_2\sim\mathcal{N}(0,\sigma^2)}$</td><td>$k_3(t_1,t_2)=\textcolor{#b51963}{\sigma^2}\cos(t_1-t_2)$</td>
+									</tr>
+									<tr>
+										<td>$h_4(t)$ arbitrary</td><td>$\text{\textcolor{#b51963}{Smooth prior}}$</td><td>$k_4(t_1,t_2)=\exp(-\frac{1}{2}(t_1-t_2)^2)$</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+						<div style="color:#0073e6">
+							<br>
+							The zeros of the diagonal restrict the frequencies of the solution set.
+						</div>
+					</div>
+				</section>
+	
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h3>Do GP realizations really satisfy the ODEs?</h3>
+					<div class="r-hstack">
+						<div style="width: 50%;">
+							<img src="tikz/Bipendulum-1.png" width="300%"/>
+						</div>
+						<div class="fragment">
+							<p>
+							\[
+								\begin{align*}
+									x''(t)+\ell_1f_1''(t)+gf_1(t) &=0 \\
+									x''(t)+\ell_2f_2''(t)+gf_2(t) &=0
+								\end{align*}
+							\]
+						</div>
+					</div>
+					<div class="fragment">
+						Error in satisfying the (lin.) Bipendulum, for noisy training data.<br>
+						(Green dashed line: error of a solution in symbolic form.)
+						<img src="tikz/BipendulumError-1.png" width="70%" />
+					</div>
+				</section>
+				-->
+		
+				<!--
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h3>Analytic Boundary</h3>
+					<div class="r-hstack">		
+						<div style="width: 50%;margin: 1em 0em 0em 0em;">
+							<div style="border: 5px solid black; border-radius: 25px; display: inline-block; padding: 1em" data-id="intersect">
+								We can <span style="color: #0073e6;"><b>intersect parametrizations</b></span><br/>
+								via a <span style="color: #0073e6;"><b>pullback</b></span> under suitable assumptions
+							</div>
+							<br>
+							<br>
+							Developed Gröbner basis algorithms for
+							<br>
+							Weyl algebras with analytic coefficients.
+							<br>
+							<br>
+							Example: divergence-free fields 
+							<br>
+							bounded by $y^2-\sin(x)^4$.
+						</div>
+						<div style="width: 50%;margin: 1em 0em 0em 0em;">
+							<img src="tikz/AnalyticTear1-1.png" style="width: 50%;"/>
+							<img src="tikz/AnalyticTear2-1.png" style="width: 50%;"/>
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h3>Analytic Boundary with Analytic Boundary Conditions</h3>
+					<div class="r-hstack">		
+						<div style="width: 25%;margin: 1em 0em 0em 0em;">
+							<img src="tikz/AnalyticTear1-1.png" style="width: 50%;"/>
+							<img src="tikz/AnalyticTear2-1.png" style="width: 50%;"/>
+						</div>
+						<div style="width: 75%;margin: 1em 0em 0em 0em;">
+						
+							Left &amp; right boundary: zero flow.
+		
+							<img src="tikz/AnalyticFlow-1.png" style="width: 100%;"/>
+						</div>
+					</div>
+				</section>
+				-->
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					<div class="r-hstack">
+						<video data-autoplay="" src="assets/2. circle.mp4" loop="" style="margin-right: .5em;"></video>
+					</div>
+					<div>
+					Dirichlet BC 0 on circle, S-EPGP method
+					</div>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					<div class="r-hstack">
+						<video data-autoplay="" src="assets/3. rec-S.mp4" loop="" style="margin-right: .5em;"></video>
+					</div>
+					<div>
+					Dirichlet BC 0 on rectangle, S-EPGP method
+					</div>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					<div class="r-hstack">
+						<video data-autoplay="" src="assets/4. rec-R.mp4" loop="" style="margin-right: .5em;"></video>
+					</div>
+					<div>
+					Dirichlet BC 0 on rectangle, <b>B</b>-EPGP method
+					</div>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					<div class="r-hstack">
+						<video data-autoplay="" src="assets/5. 2DBessel-R.mp4" loop="" style="margin-right: .5em;"></video>
+					</div>
+					<div>
+					Neumann BC 0 on half-space, <b>B</b>-EPGP method
+					</div>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Wave equation 2D</h2>
+					<p>
+						\[\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					<div class="r-hstack">
+						<video data-autoplay="" src="assets/6. triangle.mp4" loop="" style="margin-right: .5em;"></video>
+					</div>
+					<div>
+					Dirichlet BC 0 on triangle, <b>B</b>-EPGP method
+					</div>
+				</section>
+
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Heat equation 2D</h2>
+					<p>
+						\[\frac{\partial u}{\partial t} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}\] 
+					</p>
+					
+						<img src="assets/heat_2D_BC.jpeg" class="center" style="width: 60%">
+					
+					<div>
+						No BC, Dirichlet BC 0, Neumann BC 0, <b>B</b>-EPGP method
+					</div>
+				</section>
+				
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Conclusion</h2>
+					<div class="r-hstack">
+						<div style="width: 60%;">
+							<ul>
+								<li>
+									<b>EPGP</b>: A class of GP priors for solving PDE
+									<ul>
+										<li><b>S-EPGP</b>: sparse version</li>
+										<!--<li class="fragment" data-fragment-index="0"><b>Parametrize</b>: controllable PDEs &amp; boundaries</li>-->
+										<!--<li class="fragment" data-fragment-index="0"><b>LODE-GPs</b>: ODEs</li>-->
+									</ul>
+								</li>
+								<li>Fully algorithmic</li>
+								<li>No approximations anywhere $\Rightarrow$ exact solutions</li>
+								<li>Improved accuracy and convergence speed over PINN</li>
+								<li>Compatible with standard GP techniques</li>
+								<li>Interpretable hyperparameters (optimizable)</li>
+								<li>Only assumptions: linear and constant coefficients</li>
+								<li>Very little data necessary</li>
+								<li>We can say more for parametrizable/controllable systems</li>
+							</ul>
+						</div>
+						<div style="margin-left: 0em; width: 40%;">
+							<p>
+								\[
+									\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}
+								\]
+							</p>
+							<video data-autoplay="" src="assets/wave_nice.mp4" loop="" style="margin-right: .5em;"></video>
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Conclusion</h2>
+					<div class="r-hstack">
+						<div style="margin-left: 0em;width: 60%;">
+							<p>
+								\[
+									\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}
+								\]
+							</p>
+							<video data-autoplay="" src="assets/wave_nice.mp4" loop="" style="margin-right: .5em;"></video>
+						</div>
+						<div style="width: 40%;">
+							<h4>Open Problems</h4>
+							<ul>
+								<li>Many</li>
+								<li>Large scale problems and comparison to numerical solvers</li>
+								<li>Extensions to neural networks</li>
+								<li>Bringing these methods to industry</li>
+								<li>Boundary conditions for S-EPGP</li>
+								<li>Convergence and density questions</li>
+								<li>Topologically interesting domains and monodromy phenomena</li>
+								<!--<li class="fragment" data-fragment-index="6">Control problems</li>-->
+							</ul>
+						</div>
+					</div>
+				</section>
+				<section data-auto-animate="" style="top: 540px; display: none;" aria-hidden="true" class="future" hidden="">
+					<h2>Conclusion</h2>
+					<div class="r-hstack">
+						<div style="width: 40%;">
+							<h2>Thank you for your attention!</h2>
+							<div style="text-align: left;">
+								<p>Literature</p>
+								<ul>
+									<li> arXiv:2411.16663
+									<li>arXiv:2212.14319 (ICML 2023)
+									<li>arXiv:2208.12515 (NeurIPS 2022)
+									<li>arXiv:2205.03185 (CASC 2022)
+									<li>arXiv:2002.00818 (AISTATS 2021)
+									<li>arXiv:1801.09197 (NeurIPS 2018)
+								</ul>
+							</div>
+						</div>
+						<div style="margin-left: 0em;width: 60%;">
+							<p>
+								\[
+									\frac{\partial^2 u}{\partial t^2} = \frac{\partial^2 u}{\partial x^2} + \frac{\partial^2 u}{\partial y^2}
+								\]
+							</p>
+							<video data-autoplay="" src="assets/wave_nice.mp4" loop="" style="margin-right: .5em;"></video>
+						</div>
+					</div>
+				</section>
+				
+
+		<script src="assets/reveal.js"></script>
+		<script src="assets/notes.js"></script>
+		<script src="assets/markdown.js"></script>
+		<script src="assets/highlight.js"></script>
+		<script src="assets/math.js"></script>
+		<script>
+			// More info about initialization & config:
+			// - https://revealjs.com/initialization/
+			// - https://revealjs.com/config/
+			Reveal.initialize({
+				hash: true,
+				width: 1920,
+  				height: 1080,
+				// Learn about plugins: https://revealjs.com/plugins/
+				plugins: [ RevealMarkdown, RevealHighlight, RevealNotes, RevealMath.KaTeX ],
+				showSlideNumber: 'all',
+				slideNumber: true
+			});
+		</script>
+		
+	
+
+</body></html>
